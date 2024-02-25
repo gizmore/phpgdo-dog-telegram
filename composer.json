@@ -1,0 +1,16 @@
+{
+  "name": "gizmore/phpgdo-dog-telegram",
+  "description": "Composer dependencies for phpgdo-dog-telegram module DogTelegram.",
+  "type": "library",
+  "license": "MIT",
+  "require": {
+    "php": ">=8.2",
+    "longman/telegram-bot": "*"
+  },
+  "authors": [
+    {
+      "name": "gizmore",
+      "email": "gizmore@wechall.net"
+    }
+  ]
+}
