@@ -55,9 +55,9 @@ while (true)
             $message = $update->getMessage();
             $chat = $message->getChat();
             $user = $message->getFrom();
-            printf("%s:%d:%d:%s:%s\n",
+            printf("%s:%d:%d:%s:%s:%s\n",
                 $chat->getType(),$chat->getId(),
-                $user->getId(), $user->getUsername(),
+                $user->getId(), $user->getUsername(), $user->getLanguageCode(),
                 $message->getText());
         }
     }

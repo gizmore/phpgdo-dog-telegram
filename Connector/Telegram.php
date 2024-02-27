@@ -2,6 +2,7 @@
 namespace GDO\DogTelegram\Connector;
 
 use GDO\Core\GDT;
+use GDO\Core\Logger;
 use GDO\Dog\Dog;
 use GDO\Dog\DOG_Connector;
 use GDO\Dog\DOG_Message;
@@ -72,6 +73,10 @@ final class Telegram extends DOG_Connector
 
     public function readMessage(): ?DOG_Message
     {
+        while ($line = fgets($this->err))
+        {
+            Logger::logError('Telegram: '. $line);
+        }
         if (!($line = fgets($this->out)))
         {
             return null;
@@ -80,8 +85,10 @@ final class Telegram extends DOG_Connector
 
         if (count($data) === 5)
         {
-            list($type, $chan_id, $user_id, $user_name, $text) = $data;
+            list($type, $chan_id, $user_id, $user_name, $lang_iso, $text) = $data;
             $user = DOG_User::getOrCreateUser($this->server, (string)$user_id, $user_name);
+            $gdouser = $user->getGDOUser();
+            $gdouser->saveSettingVar('Language', 'language', $lang_iso);
             $message = DOG_Message::make()->server($this->server)->user($user)->text(trim($text));
             if ($type !== 'private')
             {
@@ -115,9 +122,16 @@ final class Telegram extends DOG_Connector
         ]);
         if (!$response->isOk())
         {
-            print_r($response);
+            Logger::logError(print_r($response, true));
         }
         return $response->isOk();
+    }
+
+    public function sendToRoom(DOG_Room $room, string $text): bool
+    {
+        parent::sendToRoom($room, $text);
+
+
     }
 
 //    private function escapeMarkdownV2(string $text)
@@ -130,21 +144,21 @@ final class Telegram extends DOG_Connector
     #############
 
 
-    public static function red(string $s): string { return $s; }
-
-    public static function green(string $s): string { return $s; }
-
-    public static function bold(string $s): string { return "**{$s}**"; }
-
-
-    public static function dim(string $s): string { return $s; }
-
-    public static function italic(string $s): string { return "__{$s}__"; }
-
-    public static function underlined(string $s): string { return $s; }
-
-    public static function blinking(string $s): string { return $s; }
-
-    public static function invisible(string $s): string { return $s; }
+//    public static function red(string $s): string { return $s; }
+//
+//    public static function green(string $s): string { return $s; }
+//
+//    public static function bold(string $s): string { return "**{$s}**"; }
+//
+//
+//    public static function dim(string $s): string { return $s; }
+//
+//    public static function italic(string $s): string { return "__{$s}__"; }
+//
+//    public static function underlined(string $s): string { return $s; }
+//
+//    public static function blinking(string $s): string { return $s; }
+//
+//    public static function invisible(string $s): string { return $s; }
 
 }
