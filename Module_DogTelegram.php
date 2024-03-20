@@ -1,11 +1,13 @@
 <?php
 namespace GDO\DogTelegram;
 
+use GDO\Core\Application;
 use GDO\Core\GDO_DBException;
 use GDO\Core\GDO_Module;
 use GDO\Core\GDT_Name;
 use GDO\Core\GDT_Secret;
 use GDO\Dog\DOG_Server;
+use GDO\Subscription\GDT_SubscribeType;
 
 final class Module_DogTelegram extends GDO_Module
 {
@@ -14,6 +16,7 @@ final class Module_DogTelegram extends GDO_Module
     {
         return [
             'Dog',
+            'Subscription',
         ];
     }
 
@@ -39,7 +42,7 @@ final class Module_DogTelegram extends GDO_Module
      */
     public function onInstall(): void
     {
-        if (!DOG_Server::getBy('serv_connector', 'telegram'))
+        if (!DOG_Server::getBy('serv_connector', 'Telegram'))
         {
             DOG_Server::blank([
                 'serv_connector' => 'Telegram',
@@ -50,7 +53,11 @@ final class Module_DogTelegram extends GDO_Module
 
     public function onModuleInit(): void
     {
-        require $this->filePath('vendor/autoload.php');
+        if (Application::instance()->isCLI())
+        {
+            require $this->filePath('vendor/autoload.php');
+        }
+        GDT_SubscribeType::addSubscriptor($this);
     }
 
 }

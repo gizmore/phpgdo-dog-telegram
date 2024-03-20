@@ -47,24 +47,37 @@ while (true)
     if ($response->isOk())
     {
         $result = $response->getResult();
+        $count = 0;
         foreach ($result as $update)
         {
             /**
              * @var Update $update
              */
             $message = $update->getMessage();
-            $chat = $message->getChat();
-            $user = $message->getFrom();
-            printf("%s:%d:%d:%s:%s:%s\n",
-                $chat->getType(),$chat->getId(),
-                $user->getId(), $user->getUsername(), $user->getLanguageCode(),
-                $message->getText());
+            if ($message)
+            {
+                $chat = $message->getChat();
+                $user = $message->getFrom();
+                printf("%s:%d:%d:%s:%s:%s\n",
+                    $chat->getType(),$chat->getId(),
+                    $user->getId(), $user->getUsername(), $user->getLanguageCode(),
+                    $message->getText());
+            }
+            else
+            {
+                print_r($update);
+            }
+            $count++;
+        }
+        if ($count === 0)
+        {
+            echo "PING\n";
         }
     }
     else
     {
         print_r($response);
-        die();
+//        die();
     }
-    usleep(100000);
+    usleep(200000);
 }

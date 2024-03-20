@@ -1,6 +1,7 @@
 <?php
 namespace GDO\DogTelegram\Connector;
 
+use GDO\Core\GDO_DBException;
 use GDO\Core\GDT;
 use GDO\Core\Logger;
 use GDO\Dog\Dog;
@@ -46,14 +47,22 @@ final class Telegram extends DOG_Connector
         ];
         $env = [];
         $pipes = [];
-        $command = sprintf("php %s", escapeshellarg(GDO_PATH . 'GDO/DogTelegram/bin/dog_telegram.php'));
+        $command = sprintf("php %s", escapeshellarg(GDO_PATH . 'GDO/DogTelegram/bin/dog_telegram.php') . '  ');
         if ($this->process = proc_open($command, $descriptorspec,$pipes))
         {
             $this->in = $pipes[0];
             $this->out = $pipes[1];
             $this->err = $pipes[2];
-            $this->connected(true);
-            return true;
+//            fclose($this->in);
+//            $this->in = null;
+
+//            if (#stream_set_blocking($pipes[0], 0) &&
+//                stream_set_blocking($pipes[1], 0) &&
+//                stream_set_blocking($pipes[2], 0))
+//            {
+                $this->connected(true);
+                return true;
+//            }
         }
         return false;
     }
@@ -63,7 +72,6 @@ final class Telegram extends DOG_Connector
         $this->running = false;
         if ($this->process)
         {
-            fclose($this->in);
             fclose($this->out);
             fclose($this->err);
             proc_close($this->process);
@@ -71,20 +79,33 @@ final class Telegram extends DOG_Connector
         }
     }
 
-    public function readMessage(): ?DOG_Message
+    public function readMessage(): bool
     {
-        while ($line = fgets($this->err))
+        $read = [$this->in];
+        $write = [];
+        $error = [];
+        if (stream_select($read, $write, $error, null) === 1)
         {
-            Logger::logError('Telegram: '. $line);
+            return $this->readMessageB();
         }
-        if (!($line = fgets($this->out)))
-        {
-            return null;
-        }
-        $data = explode(':', $line, 5);
+        return false;
+    }
 
-        if (count($data) === 5)
+    /**
+     * @throws GDO_DBException
+     */
+    private function readMessageB(): bool
+    {
+//        while ($line = fgets($this->err))
+//        {
+//            Logger::logError('Telegram: '. $line);
+//        }
+        $line = fgets($this->out);
+        $data = explode(':', $line, 6);
+
+        if (count($data) === 6)
         {
+
             list($type, $chan_id, $user_id, $user_name, $lang_iso, $text) = $data;
             $user = DOG_User::getOrCreateUser($this->server, (string)$user_id, $user_name);
             $gdouser = $user->getGDOUser();
@@ -95,13 +116,14 @@ final class Telegram extends DOG_Connector
                 $room = DOG_Room::getOrCreate($this->server, (string)$chan_id);
                 $message->room($room);
             }
-
             Dog::instance()->event('dog_message', $message);
-
-            return $message;
         }
-        echo $line;
-        return null;
+        else
+        {
+            echo $line;
+            return false;
+        }
+        return true;
     }
 
     public function setupServer(DOG_Server $server): void
@@ -130,8 +152,6 @@ final class Telegram extends DOG_Connector
     public function sendToRoom(DOG_Room $room, string $text): bool
     {
         parent::sendToRoom($room, $text);
-
-
     }
 
 //    private function escapeMarkdownV2(string $text)
