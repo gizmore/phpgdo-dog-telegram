@@ -54,12 +54,13 @@ while (true)
              * @var Update $update
              */
             $message = $update->getMessage();
+            $message = $message ?: $update->getEditedMessage();
             if ($message)
             {
                 $chat = $message->getChat();
                 $user = $message->getFrom();
-                printf("%s:%d:%d:%s:%s:%s\n",
-                    $chat->getType(),$chat->getId(),
+                printf("%s:%d:%s:%d:%s:%s:%s\n",
+                    $chat->getType(),$chat->getId(), $chat->getTitle(),
                     $user->getId(), $user->getUsername(), $user->getLanguageCode(),
                     $message->getText());
             }

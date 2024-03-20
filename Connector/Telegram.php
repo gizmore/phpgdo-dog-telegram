@@ -101,12 +101,19 @@ final class Telegram extends DOG_Connector
 //            Logger::logError('Telegram: '. $line);
 //        }
         $line = fgets($this->out);
-        $data = explode(':', $line, 6);
 
-        if (count($data) === 6)
+        $line = trim($line);
+
+        if ($line === 'PING')
         {
+            return false;
+        }
 
-            list($type, $chan_id, $user_id, $user_name, $lang_iso, $text) = $data;
+        $data = explode(':', $line, 7);
+
+        if (count($data) === 7)
+        {
+            list($type, $chan_id, $chan_name, $user_id, $user_name, $lang_iso, $text) = $data;
             $user = DOG_User::getOrCreateUser($this->server, (string)$user_id, $user_name);
             $gdouser = $user->getGDOUser();
             $gdouser->saveSettingVar('Language', 'language', $lang_iso);
@@ -149,9 +156,23 @@ final class Telegram extends DOG_Connector
         return $response->isOk();
     }
 
+    /**
+     * @throws TelegramException
+     */
     public function sendToRoom(DOG_Room $room, string $text): bool
     {
         parent::sendToRoom($room, $text);
+        $response = Request::sendMessage([
+            'chat_id' => $room->getName(),
+            'text' => $text,
+            'parse_mode' => 'HTML',
+        ]);
+        if (!$response->isOk())
+        {
+            Logger::logError(print_r($response, true));
+        }
+        return $response->isOk();
+
     }
 
 //    private function escapeMarkdownV2(string $text)
