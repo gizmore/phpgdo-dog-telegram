@@ -41,6 +41,7 @@ $api_key = $mod->cfgApiKey();
 $bot_usr = $mod->cfgBotUser();
 $telegram = new Longman\TelegramBot\Telegram($api_key, $bot_usr);
 $telegram->useGetUpdatesWithoutDatabase();
+
 while (true)
 {
     $response = $telegram->handleGetUpdates();

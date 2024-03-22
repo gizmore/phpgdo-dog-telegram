@@ -8,9 +8,11 @@ use GDO\Dog\Dog;
 use GDO\Dog\DOG_Connector;
 use GDO\Dog\DOG_Message;
 use GDO\Dog\DOG_Room;
+use GDO\Dog\DOG_RoomUser;
 use GDO\Dog\DOG_Server;
 use GDO\Dog\DOG_User;
 use GDO\DogTelegram\Module_DogTelegram;
+use Longman\TelegramBot\Entities\ChatMember\ChatMemberMember;
 use Longman\TelegramBot\Exception\TelegramException;
 use Longman\TelegramBot\Request;
 
@@ -67,6 +69,12 @@ final class Telegram extends DOG_Connector
         return false;
     }
 
+    protected function onConnected(): void
+    {
+        $this->server->reloadRooms();
+    }
+
+
     public function disconnect(string $reason): void
     {
         $this->running = false;
@@ -79,6 +87,33 @@ final class Telegram extends DOG_Connector
         }
     }
 
+    public function hasUserSubscribedRoom(DOG_User $user, DOG_Room $room): bool
+    {
+        static $checked = [];
+        if (isset($checked[$user->getID()]))
+        {
+            return false;
+        }
+        $response = Request::getChatMember([
+            'chat_id' => $room->getName(),
+            'user_id' => $user->getName(),
+        ]);
+        if ($response->isOk())
+        {
+            /** @var ChatMemberMember $result */
+            $result = $response->getResult();
+            if ($result->getUser())
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    /**
+     * @throws GDO_DBException
+     */
     public function readMessage(): bool
     {
         $read = [$this->in];
@@ -101,13 +136,14 @@ final class Telegram extends DOG_Connector
 //            Logger::logError('Telegram: '. $line);
 //        }
         $line = fgets($this->out);
-
         $line = trim($line);
 
         if ($line === 'PING')
         {
             return false;
         }
+
+        echo "Telegram << $line\n";
 
         $data = explode(':', $line, 7);
 
@@ -120,8 +156,11 @@ final class Telegram extends DOG_Connector
             $message = DOG_Message::make()->server($this->server)->user($user)->text(trim($text));
             if ($type !== 'private')
             {
-                $room = DOG_Room::getOrCreate($this->server, (string)$chan_id);
+                $room = DOG_Room::getOrCreate($this->server, $chan_id, '', '$', $chan_name);
                 $message->room($room);
+                $this->server->addRoom($room);
+                $room->addUser($user);
+                DOG_RoomUser::joined($user, $room);
             }
             Dog::instance()->event('dog_message', $message);
         }
@@ -143,6 +182,9 @@ final class Telegram extends DOG_Connector
     public function sendToUser(DOG_User $user, string $text): bool
     {
         parent::sendToUser($user, $text);
+
+        echo "Telegram {$user->renderFullName()} >> {$text}\n";
+
 //        $text = $this->escapeMarkdownV2($text);
         $response = Request::sendMessage([
             'chat_id' => $user->getName(),
@@ -162,6 +204,7 @@ final class Telegram extends DOG_Connector
     public function sendToRoom(DOG_Room $room, string $text): bool
     {
         parent::sendToRoom($room, $text);
+        echo "Telegram {$room->renderName()} >> {$text}\n";
         $response = Request::sendMessage([
             'chat_id' => $room->getName(),
             'text' => $text,
