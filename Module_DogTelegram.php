@@ -7,6 +7,7 @@ use GDO\Core\GDO_Module;
 use GDO\Core\GDT_Name;
 use GDO\Core\GDT_Secret;
 use GDO\Dog\DOG_Server;
+use GDO\Dog\DOG_User;
 use GDO\Subscription\GDT_SubscribeType;
 
 final class Module_DogTelegram extends GDO_Module
@@ -42,13 +43,14 @@ final class Module_DogTelegram extends GDO_Module
      */
     public function onInstall(): void
     {
-        if (!DOG_Server::getBy('serv_connector', 'Telegram'))
+        if (!($server = DOG_Server::getBy('serv_connector', 'Telegram')))
         {
-            DOG_Server::blank([
+            $server = DOG_Server::blank([
                 'serv_connector' => 'Telegram',
                 'serv_username' => $this->cfgBotUser(),
             ])->insert();
         }
+        DOG_User::getOrCreateUser($server, $this->cfgBotUser(), $this->cfgBotName(), false);
     }
 
     public function onModuleInit(): void

@@ -1,6 +1,7 @@
 <?php
 namespace GDO\DogTelegram\Connector;
 
+use GDO\Core\Application;
 use GDO\Core\GDO_DBException;
 use GDO\Core\GDT;
 use GDO\Core\Logger;
@@ -16,6 +17,9 @@ use Longman\TelegramBot\Entities\ChatMember\ChatMemberMember;
 use Longman\TelegramBot\Exception\TelegramException;
 use Longman\TelegramBot\Request;
 
+/**
+ *
+ */
 final class Telegram extends DOG_Connector
 {
     public $in = null;
@@ -30,6 +34,15 @@ final class Telegram extends DOG_Connector
         return GDT::RENDER_TELEGRAM;
     }
 
+    public function getNickname(): string
+    {
+        return Module_DogTelegram::instance()->cfgBotUser();
+    }
+
+
+    /**
+     * @throws TelegramException
+     */
     public function init(): bool
     {
         $mod = Module_DogTelegram::instance();
@@ -43,18 +56,25 @@ final class Telegram extends DOG_Connector
     public function connect(): bool
     {
         $descriptorspec = [
-            0 => ['pipe', 'r'],  // stdin is a pipe that the child will read from
-            1 => ['pipe', 'w'],  // stdout is a pipe that the child will write to
-            2 => ['pipe', 'w'],  // stderr is a pipe that the child will write to
+            0 => ['socket', 'r'],  // stdin is a pipe that the child will read from
+            1 => ['socket', 'w'],  // stdout is a pipe that the child will write to
+            2 => ['socket', 'w'],  // stderr is a pipe that the child will write to
         ];
         $env = [];
+        $args = ['bypass_shell' => true];
         $pipes = [];
         $command = sprintf("php %s", escapeshellarg(GDO_PATH . 'GDO/DogTelegram/bin/dog_telegram.php') . '  ');
-        if ($this->process = proc_open($command, $descriptorspec,$pipes))
+        if ($this->process = proc_open($command, $descriptorspec,$pipes, getcwd(), null, $args))
         {
             $this->in = $pipes[0];
             $this->out = $pipes[1];
             $this->err = $pipes[2];
+
+            if (!stream_set_blocking($pipes[1], false))
+            {
+                $this->disconnect("Cannot set process to non blocking.");
+                return false;
+            }
 //            fclose($this->in);
 //            $this->in = null;
 
@@ -80,6 +100,7 @@ final class Telegram extends DOG_Connector
         $this->running = false;
         if ($this->process)
         {
+            fclose($this->in);
             fclose($this->out);
             fclose($this->err);
             proc_close($this->process);
@@ -116,7 +137,7 @@ final class Telegram extends DOG_Connector
      */
     public function readMessage(): bool
     {
-        $read = [$this->in];
+        $read = [$this->out];
         $write = [];
         $error = [];
         if (stream_select($read, $write, $error, null) === 1)
@@ -203,7 +224,6 @@ final class Telegram extends DOG_Connector
      */
     public function sendToRoom(DOG_Room $room, string $text): bool
     {
-        parent::sendToRoom($room, $text);
         echo "Telegram {$room->renderName()} >> {$text}\n";
         $response = Request::sendMessage([
             'chat_id' => $room->getName(),
@@ -214,6 +234,7 @@ final class Telegram extends DOG_Connector
         {
             Logger::logError(print_r($response, true));
         }
+        parent::sendToRoom($room, $text);
         return $response->isOk();
 
     }

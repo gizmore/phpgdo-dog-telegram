@@ -18,7 +18,7 @@ require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/../../../protected/config.php';
 require __DIR__ . '/../../../GDO7.php';
 
-CLI::init();
+//CLI::init();
 Debug::init();
 Logger::init('dog_telegram', Logger::ALL, 'protected/logs_telegram');
 Logger::disableBuffer();
