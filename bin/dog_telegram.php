@@ -1,12 +1,13 @@
 <?php
 
-use GDO\CLI\CLI;
+use GDO\CLI\Process;
 use GDO\Core\Application;
 use GDO\Core\Debug;
 use GDO\Core\Logger;
 use GDO\Core\ModuleLoader;
 use GDO\DB\Database;
 use GDO\DogTelegram\Module_DogTelegram;
+use GDO\Dog\Module_Dog;
 use Longman\TelegramBot\Entities\Update;
 
 if (PHP_SAPI !== 'cli')
@@ -41,6 +42,7 @@ $api_key = $mod->cfgApiKey();
 $bot_usr = $mod->cfgBotUser();
 $telegram = new Longman\TelegramBot\Telegram($api_key, $bot_usr);
 $telegram->useGetUpdatesWithoutDatabase();
+$sleep = Module_Dog::instance()->cfgIdleSleepMicros();
 
 while (true)
 {
@@ -73,13 +75,16 @@ while (true)
         }
         if ($count === 0)
         {
-            echo "PING\n";
+            if (Process::isWindows())
+            {
+                echo "PING\n";
+            }
         }
     }
     else
     {
-        print_r($response);
+//        print_r($response);
 //        die();
     }
-    usleep(200000);
+    usleep($sleep);
 }

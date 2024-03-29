@@ -1,6 +1,8 @@
 <?php
 namespace GDO\DogTelegram\Connector;
 
+use GDO\CLI\CLI;
+use GDO\CLI\Process;
 use GDO\Core\Application;
 use GDO\Core\GDO_DBException;
 use GDO\Core\GDT;
@@ -56,9 +58,9 @@ final class Telegram extends DOG_Connector
     public function connect(): bool
     {
         $descriptorspec = [
-            0 => ['socket', 'r'],  // stdin is a pipe that the child will read from
-            1 => ['socket', 'w'],  // stdout is a pipe that the child will write to
-            2 => ['socket', 'w'],  // stderr is a pipe that the child will write to
+            0 => ['pipe', 'r'],  // stdin is a pipe that the child will read from
+            1 => ['pipe', 'w'],  // stdout is a pipe that the child will write to
+            2 => ['pipe', 'w'],  // stderr is a pipe that the child will write to
         ];
         $env = [];
         $args = ['bypass_shell' => true];
@@ -70,10 +72,13 @@ final class Telegram extends DOG_Connector
             $this->out = $pipes[1];
             $this->err = $pipes[2];
 
-            if (!stream_set_blocking($pipes[1], false))
+            if (!Process::isWindows())
             {
-                $this->disconnect("Cannot set process to non blocking.");
-                return false;
+                if (!stream_set_blocking($pipes[1], false))
+                {
+                    $this->disconnect("Cannot set process to non blocking.");
+                    return false;
+                }
             }
 //            fclose($this->in);
 //            $this->in = null;
