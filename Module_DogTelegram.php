@@ -6,8 +6,10 @@ use GDO\Core\GDO_DBException;
 use GDO\Core\GDO_Module;
 use GDO\Core\GDT_Name;
 use GDO\Core\GDT_Secret;
+use GDO\Dog\DOG_Connector;
 use GDO\Dog\DOG_Server;
 use GDO\Dog\DOG_User;
+use GDO\DogTelegram\Connector\Telegram;
 use GDO\Subscription\GDT_SubscribeType;
 
 final class Module_DogTelegram extends GDO_Module
@@ -57,9 +59,10 @@ final class Module_DogTelegram extends GDO_Module
     {
         if (Application::instance()->isCLI())
         {
-            require $this->filePath('vendor/autoload.php');
+            require_once $this->filePath('vendor/autoload.php');
         }
         GDT_SubscribeType::addSubscriptor($this);
+        DOG_Connector::register(new Telegram());
     }
 
 }
