@@ -145,7 +145,7 @@ final class Telegram extends DOG_Connector
         $read = [$this->out];
         $write = [];
         $error = [];
-        if (stream_select($read, $write, $error, null) === 1)
+        if (stream_select($read, $write, $error, 0, 0) === 1)
         {
             return $this->readMessageB();
         }
